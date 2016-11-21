@@ -1,0 +1,22 @@
+{
+  "name": "stm-lambda",
+  "version": "1.0.0",
+  "description": "AWS lambda executable",
+  "main": "index.js",
+  "dependencies": {
+    "async": "^2.1.2",
+    "lodash": "^4.17.2",
+    "request": "^2.79.0",
+    "request-promise": "^4.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "stm-lambda"
+  },
+  "author": "Sistemium UAB",
+  "license": "ISC"
+}
