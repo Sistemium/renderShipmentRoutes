@@ -11,7 +11,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "deploy": "zip -r ../renderShipmentRoutes.zip *; aws lambda update-function-code --zip-file fileb://../renderShipmentRoutes.zip  --function-name renderShipmentRoutes"
   },
   "repository": {
     "type": "git",
