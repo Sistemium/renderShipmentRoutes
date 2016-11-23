@@ -4,17 +4,9 @@ const _ = require('lodash');
 const async = require('async');
 const request = require('request-promise');
 
-const API = process.env.API || 'http://localhost:9090/api/dr50/';
+const API = process.env.API || 'http://localhost:9090/api';
 const TOKEN = process.env.TOKEN;
 const REPORTS = process.env.REPORTS || 'http://localhost:8999/report';
-
-const shipmentRouteConfig = {
-  url: API + 'ShipmentRoute',
-  json: true,
-  headers: {
-    authorization: TOKEN
-  }
-};
 
 module.exports.run = run;
 
@@ -22,103 +14,111 @@ module.exports.run = run;
  Functions
  */
 
-function run (date) {
+function run(date, pool) {
 
-  console.log('Start with date:', date);
+  console.log('Start with date:', date, 'pool:', pool);
 
-  return request.get(_.assign({
-    qs: {
-      date: date
-    }
-  }, shipmentRouteConfig))
-    .then(processRoutes);
-
-}
-
-function processRoutes(data) {
-
-  let routes = _.filter(data, 'routePointsAgg.reachedCnt');
-
-  console.log('Routes count:', routes.length, 'of', data.length);
-
-  if (!routes.length) {
-    return;
+  if (!pool) {
+    return Promise.reject('pool not specified');
   }
 
-  let series = _.map(routes, function (route) {
-    return function (done) {
+  return request.get(requestConfig('ShipmentRoute', {qs: {date: date}}))
+    .then(processRoutes);
 
-      console.log('Start processing route:', route.id);
 
-      renderPicture(route)
-        .then(function (mapSrc) {
-          console.log('Done:', mapSrc);
-          return saveRouteData(route, mapSrc);
-        })
-        .then(function(){
-          done(null, route.mapSrc);
-        })
-        .catch(done);
-    }
-  });
-
-  return new Promise((resolve, reject) => {
-    async.series(series, function (err, data) {
-
-      if (err) {
-        reject(err);
-        return console.error(err);
+  function requestConfig(resource, config) {
+    return _.assign({
+      url: `${API}/${pool}/${resource}`,
+      json: true,
+      headers: {
+        authorization: TOKEN,
+        'x-page-size': 1000
       }
+    }, config);
+  }
 
-      console.log('Success:', data.length);
+  function renderPicture(route) {
 
-      resolve({
-        routes: data.length
+    let config = {
+      url: REPORTS,
+      followRedirect: false,
+      resolveWithFullResponse: true,
+      qs: {
+        path: `${TOKEN}/${pool}/srrm/${route.id}?saveData`,
+        format: 'png'
+      }
+    };
+
+    return request.get(config)
+      .then(function (response) {
+        console.log(response);
+      })
+      .catch(function (err) {
+        if (err.statusCode == 302) {
+          return _.get(err, 'response.headers.location');
+        }
+        throw new Error(err);
       });
 
-    });
-  });
+  }
 
-}
+  function saveRouteData(route, mapSrc) {
 
-function renderPicture(route) {
+    let config = requestConfig(`ShipmentRoute/${route.id}`, {qs: {mapSrc: mapSrc}});
 
-  let config = {
-    url: REPORTS,
-    followRedirect: false,
-    resolveWithFullResponse: true,
-    qs: {
-      path: `${TOKEN}/srrm/${route.id}?saveData`,
-      format: 'png'
+    return request.patch(config)
+      .then(function (response) {
+        console.log('saveRouteData success');
+        return response;
+      });
+
+  }
+
+
+  function processRoutes(data) {
+
+    let routes = _.filter(data, 'routePointsAgg.reachedCnt');
+
+    console.log('Routes count:', routes.length, 'of', data.length);
+
+    if (!routes.length) {
+      console.log(data);
+      return;
     }
-  };
 
-  return request.get(config)
-    .then(function (response) {
-      console.log(response);
-    })
-    .catch(function (err) {
-      if (err.statusCode == 302) {
-        return _.get(err, 'response.headers.location');
+    let series = _.map(routes, function (route, idx) {
+      return function (done) {
+
+        console.log('Start processing route #', idx, 'id:', route.id);
+
+        renderPicture(route)
+          .then(function (mapSrc) {
+            console.log('Done:', mapSrc);
+            return saveRouteData(route, mapSrc);
+          })
+          .catch(error => console.error('Error rendering id:', route.id, error))
+          .then(() => done(null, route.mapSrc));
       }
-      throw new Error(err);
     });
 
-}
+    return new Promise((resolve, reject) => {
+      async.series(series, function (err, data) {
 
-function saveRouteData(route, mapSrc) {
+        if (err) {
+          reject(err);
+          return console.error(err);
+        }
 
-  let config = _.defaults({
-    url: `${shipmentRouteConfig.url}/${route.id}`,
-    qs: {
-      mapSrc: mapSrc
-    },
-  }, shipmentRouteConfig);
+        console.log('Success:', data.length);
 
-  return request.patch(config)
-    .then(function (response) {
-      console.log('saveRouteData success');
-      return response;
+        resolve({
+          routes: data.length
+        });
+
+      });
     });
+
+  }
+
 
 }
