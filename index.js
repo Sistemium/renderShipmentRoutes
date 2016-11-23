@@ -16,19 +16,20 @@ function getAlias(context) {
 
 }
 
-function getYestergay() {
+function getYesterday() {
   let date = new Date(new Date().setDate(new Date().getDate()-1));
-  return date.substr(0,10);
+  return date.toISOString().substr(0,10);
 }
 
 function handler(event, context, callback) {
 
   const date = _.isString(event) ? event : (event.date || getYesterday());
+  const pool = _.get(event, 'pool') || getAlias(context) || 'dr50';
 
   console.log('Handler start with event:', event);
   console.log('Handler start with context:', context);
 
-  return service.run(date, getAlias(context))
+  return service.run(date, pool)
     .then(result => callback(null, result))
     .catch(err => callback);
 
