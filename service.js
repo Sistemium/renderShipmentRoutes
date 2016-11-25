@@ -23,8 +23,21 @@ function run(date, pool) {
   }
 
   return request.get(requestConfig('ShipmentRoute', {qs: {date: date}}))
-    .then(processRoutes);
+    .then(processRoutes)
+    .then(saveReportData);
 
+
+  function saveReportData(data) {
+    let config = requestConfig('ShipmentMonitoringReport', {qs: {date: date}});
+    return request.get(config)
+      .then(existing => {
+        if (!existing) {
+          existing = [{date: date}];
+        }
+        let body = _.assign(_.first(existing), data);
+        return request.patch(_.assign(config, {body: body}));
+      });
+  }
 
   function requestConfig(resource, config) {
     return _.assign({
@@ -45,7 +58,8 @@ function run(date, pool) {
       resolveWithFullResponse: true,
       qs: {
         path: `${TOKEN}/${pool}/srrm/${route.id}?saveData`,
-        format: 'png'
+        format: 'png',
+        filename: `ShippingRoute/${route.date}/${route.id}_map.png`
       }
     };
 
@@ -112,7 +126,7 @@ function run(date, pool) {
         console.log('Success:', data.length);
 
         resolve({
-          routes: data.length
+          cnt: data.length
         });
 
       });
