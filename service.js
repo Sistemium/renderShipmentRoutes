@@ -68,7 +68,7 @@ function run(date, pool) {
         console.log(response);
       })
       .catch(function (err) {
-        if (err.statusCode == 302) {
+        if (err.statusCode === 302) {
           return _.get(err, 'response.headers.location');
         }
         throw new Error(err);

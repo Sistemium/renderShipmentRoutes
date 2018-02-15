@@ -31,6 +31,9 @@ function handler(event, context, callback) {
 
   return service.run(date, pool)
     .then(result => callback(null, result))
-    .catch(err => callback);
+    .catch(err => {
+      console.error(err);
+      callback(err);
+    });
 
 }
