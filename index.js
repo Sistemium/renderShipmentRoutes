@@ -1,6 +1,5 @@
 'use strict';
 
-const service = require('./service');
 const _ = require('lodash');
 
 module.exports.handler = handler;
@@ -25,9 +24,12 @@ function handler(event, context, callback) {
 
   const date = _.isString(event) ? event : (event.date || getYesterday());
   const pool = _.get(event, 'pool') || getAlias(context) || 'dr50';
+  const task = _.get(event, 'task') || 'shipmentMonitoring';
 
   console.log('Handler start with event:', event);
   console.log('Handler start with context:', context);
+
+  const service = require(`./tasks/${task}`);
 
   return service.run(date, pool)
     .then(result => callback(null, result))
