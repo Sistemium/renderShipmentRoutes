@@ -59,9 +59,9 @@ function run(date, pool) {
 
   function processRoutes(data) {
 
-    let routes = _.map(_.groupBy(data, 'salesmanId'), (visits, salesmanId) => {
-      return salesmanId;
-    });
+    let routes = _.filter(_.map(_.groupBy(data, 'salesmanId'), (visits, salesmanId) => {
+      return visits.length > 1 ? salesmanId :  null;
+    }));
 
     console.log('Routes count:', routes.length, 'of', routes.length);
 
