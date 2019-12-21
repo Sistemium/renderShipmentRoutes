@@ -25,13 +25,14 @@ function handler(event, context, callback) {
   const date = _.isString(event) ? event : (event.date || getYesterday());
   const pool = _.get(event, 'pool') || getAlias(context) || 'dr50';
   const task = _.get(event, 'task') || 'shipmentMonitoring';
+  const params = _.get(event, 'params') || {};
 
   console.log('Handler start with event:', event);
   console.log('Handler start with context:', context);
 
   const service = require(`./tasks/${task}`);
 
-  return service.run(date, pool)
+  return service.run(date, pool, params)
     .then(result => callback(null, result))
     .catch(err => {
       console.error(err);

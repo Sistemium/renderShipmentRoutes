@@ -11,9 +11,9 @@ module.exports.run = run;
  Functions
  */
 
-function run(date, pool) {
+async function run(date, pool, params) {
 
-  console.log('Start with date:', date, 'pool:', pool);
+  console.log('Start with date:', date, 'pool:', pool, 'params:', params);
 
   if (!pool) {
     return Promise.reject('pool not specified');
@@ -23,8 +23,20 @@ function run(date, pool) {
 
   const {requestConfig} = helpers;
 
-  return request.get(requestConfig('VisitReport', {qs: {date: date}}))
-    .then(processRoutes);
+  let visitsData = await request.get(requestConfig('VisitReport', {qs: {date: date}}));
+
+  if (!params.refresh) {
+    const dateMapsConfig = requestConfig(`VisitMapReport`, { qs: { date } });
+    const dateMaps = await request.get(dateMapsConfig);
+    const existing = _.filter(dateMaps, 'mapSrc');
+    console.log('existing:', existing.length);
+    const grouped = _.groupBy(existing, 'salesmanId');
+    visitsData = _.filter(visitsData, ({ salesmanId }) => !grouped[salesmanId]);
+    console.log('visitsData:', visitsData.length);
+    // return new Error('test');
+  }
+
+  return processRoutes(visitsData);
 
   function renderPicture(salesmanId) {
 
@@ -43,6 +55,11 @@ function run(date, pool) {
     return request.get(getRouteConfig)
       .then(_.first)
       .then(route => {
+
+        if (!route) {
+          console.log(`saveRouteData fail ${date}, ${salesmanId}`);
+          return;
+        }
 
         let config = requestConfig(`VisitMapReport/${route.id}`, {qs: {mapSrc: mapSrc}});
 
@@ -80,7 +97,7 @@ function run(date, pool) {
             console.log('Done route:', idx, mapSrc);
             return saveRouteData(salesmanId, mapSrc);
           })
-          .then(route => done(null, route.mapSrc))
+          .then(route => done(null, route && route.mapSrc))
           .catch(error => {
             console.error('Error rendering id:', salesmanId, error.toString());
             done(error);
