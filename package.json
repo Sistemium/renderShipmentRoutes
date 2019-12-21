@@ -11,7 +11,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "deploy": "zip -r ../renderPictures.zip *; aws lambda update-function-code --zip-file fileb://../renderPictures.zip  --function-name renderPictures"
+    "deploy": "rm ../renderPictures.zip; zip -r ../renderPictures.zip *; aws lambda update-function-code --zip-file fileb://../renderPictures.zip  --function-name renderPictures"
   },
   "repository": {
     "type": "git",

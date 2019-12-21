@@ -5,6 +5,7 @@ const REPORTS = process.env.REPORTS || 'http://localhost:8999/report';
 const request = require('request-promise');
 const _ = require('lodash');
 
+console.log(API);
 
 module.exports.helpers = helpers;
 
